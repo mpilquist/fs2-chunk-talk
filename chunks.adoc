@@ -338,7 +338,7 @@ def unconsN[F[_], O](
 
 == Chunk.Queue
 
-[source,scala,linenumbers,highlight=1-7|9-11|13-14|16-23]
+[source,scala,linenumbers,highlight=1-7|9-15|17-24]
 ----
 import scala.collection.immutable.Queue as SQueue
 
@@ -348,12 +348,13 @@ object Chunk:
     val size: Int
   ) extends Chunk[A]:
 
-    def +:(c: Chunk[A]): Queue[A] =
-      if c.isEmpty then this 
-      else new Queue(chunks :+ c, size + c.size)
+    def +:[A2 >: A](c: Chunk[A2]): Queue[A2] =
+      if c.isEmpty then this
+      else new Queue(c +: chunks, c.size + size)
 
-    def foreach(f: A => Unit): Unit =
-      chunks.foreach(_.foreach(f))
+    def :+[A2 >: A](c: Chunk[A2]): Queue[A2] =
+      if c.isEmpty then this
+      else new Queue(chunks :+ c, size + c.size)
 
     def apply(i: Int): O =
       if i < 0 || i >= size
@@ -365,7 +366,21 @@ object Chunk:
       go(chunks, i)
 ----
 
-== Chunk.Queue
+== Chunk.Queue#++
+
+[source,scala]
+----
+trait Chunk[+A]:
+  def ++[A2 >: A](that: Chunk[A2]): Chunk[A2] =
+    if isEmpty then that
+    else
+      that match
+        case that if that.isEmpty  => this
+        case that: Chunk.Queue[A2] => this +: that
+        case that                  => Chunk.Queue(this, that)
+----
+
+== Chunk.Queue Runtime
 
 [%step]
 .What's asymptotic runtime of `Chunk.Queue#apply`?
@@ -411,20 +426,54 @@ object Chunk:
       }
 ----
 
+== What about lookup by index?
 
+== What about lookup by index?
 
-[.columns]
-== Chunk Instances
+* Compute an array of accumulated sizes
+** sizes(0) = size of first chunk
+** sizes(1) = sum of sizes of first and second chunk
+* To lookup element at index i:
+** Binary search sizes to find smallest entry greater than i
+** The chunk at the resulting index contains the desired element
 
-[.column]
-* Empty
-* Singleton
-* ArraySlice
-* IndexedSeq
+== What about lookup by index?
 
-[.column]
-* mutable.Buffer
-* Queue[Chunk[A]]
-* java.nio.{ByteBuffer, CharBuffer}
-* scodec.bits.ByteVector
+[source,scala,highlight=2-13|15-45]
+----
+class Queue[+A](...):
+  private[this] lazy val accumulatedSizes: (Array[Int], Array[Chunk[O]]) =
+    val sizes = new Array[Int](chunks.size)
+    val arr = new Array[Chunk[A]](chunks.size)
+    var accSize = 0
+    var i = 0
+    chunks.foreach { c =>
+      accSize += c.size
+      sizes(i) = accSize
+      arr(i) = c
+      i += 1
+    }
+    (sizes, arr)
 
+  def apply(i: Int): A =
+    if i < 0 || i >= size
+    then throw new IndexOutOfBoundsException()
+    if i == 0 then chunks.head(0)
+    else if i == size - 1 then chunks.last.last.get
+    else
+      val (sizes, chunks) = accumulatedSizes
+      val j = java.util.Arrays.binarySearch(sizes, i)
+      if j >= 0 then
+        chunks(j + 1)(0)
+      else
+        val k = -(j + 1)
+        val accSizeBefore = if k == 0 then 0 
+                            else sizes(k - 1)
+        chunks(k)(i - accSizeBefore)
+----
+
+== Runtimes
+
+* For a `Chunk.Queue` with n elements and m constituent chunks:
+** `apply` is `O(log m)`
+** Worst case `m == n`

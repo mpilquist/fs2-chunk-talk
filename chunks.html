@@ -562,7 +562,7 @@ val encouraged = Stream.chunk(huge) ++ Stream.chunk(crlf)</code></pre></div></di
 <section id="_unconsn_2"><h2>unconsN</h2><div class="slide-content"><div class="ulist"><ul><li class="fragment"><p>Problem: <code>concat</code> requires a <code>ClassTag[O]</code></p></li><li class="fragment"><p>Option 1: add <code>ClassTag</code> constraint</p><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">def unconsN[F[_], O: ClassTag](...)</code></pre></div></div></li><li class="fragment"><p>Option 2: change return type to <code>Queue[Chunk[O]]</code></p><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">def unconsN[F[_], O](
   ...
 ): Pull[F, Nothing, Option[(Queue[Chunk[O]], Stream[F, O])]]</code></pre></div></div></li><li class="fragment"><p>Option 3: make <code>Queue[Chunk[O]]</code> a constructor of <code>Chunk[O]</code></p></li></ul></div></div></section>
-<section id="_chunk_queue"><h2>Chunk.Queue</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-line-numbers="1,2,3,4,5,6,7|9,10,11|13,14|16,17,18,19,20,21,22,23" data-lang="scala">import scala.collection.immutable.Queue as SQueue
+<section id="_chunk_queue"><h2>Chunk.Queue</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-line-numbers="1,2,3,4,5,6,7|9,10,11,12,13,14,15|17,18,19,20,21,22,23,24" data-lang="scala">import scala.collection.immutable.Queue as SQueue
 
 object Chunk:
   class Queue[+A] private (
@@ -570,12 +570,13 @@ object Chunk:
     val size: Int
   ) extends Chunk[A]:
 
-    def +:(c: Chunk[A]): Queue[A] =
+    def +:[A2 &gt;: A](c: Chunk[A2]): Queue[A2] =
+      if c.isEmpty then this
+      else new Queue(c +: chunks, c.size + size)
+
+    def :+[A2 &gt;: A](c: Chunk[A2]): Queue[A2] =
       if c.isEmpty then this
       else new Queue(chunks :+ c, size + c.size)
-
-    def foreach(f: A =&gt; Unit): Unit =
-      chunks.foreach(_.foreach(f))
 
     def apply(i: Int): O =
       if i &lt; 0 || i &gt;= size
@@ -585,7 +586,15 @@ object Chunk:
         if offset &lt; head.size then head(offset)
         else go(chunks.tail, offset - head.size)
       go(chunks, i)</code></pre></div></div></div></section>
-<section id="_chunk_queue_2"><h2>Chunk.Queue</h2><div class="slide-content"><div class="ulist"><div class="title">What&#8217;s asymptotic runtime of <code>Chunk.Queue#apply</code>?</div><ul><li class="fragment"><p>If number of constituent chunks is much smaller than total size, then O(1)</p></li><li class="fragment"><p>As number of constituent chunks approaches total size, runtime approaches O(n)</p></li></ul></div></div></section>
+<section id="_chunk_queue_2"><h2>Chunk.Queue#++</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">trait Chunk[+A]:
+  def ++[A2 &gt;: A](that: Chunk[A2]): Chunk[A2] =
+    if isEmpty then that
+    else
+      that match
+        case that if that.isEmpty  =&gt; this
+        case that: Chunk.Queue[A2] =&gt; this +: that
+        case that                  =&gt; Chunk.Queue(this, that)</code></pre></div></div></div></section>
+<section id="_chunk_queue_runtime"><h2>Chunk.Queue Runtime</h2><div class="slide-content"><div class="ulist"><div class="title">What&#8217;s asymptotic runtime of <code>Chunk.Queue#apply</code>?</div><ul><li class="fragment"><p>If number of constituent chunks is much smaller than total size, then O(1)</p></li><li class="fragment"><p>As number of constituent chunks approaches total size, runtime approaches O(n)</p></li></ul></div></div></section>
 <section id="_chunk_queue_3"><h2>Chunk.Queue</h2><div class="slide-content"><div class="listingblock"><div class="title">What&#8217;s asymptotic runtime of <code>foreach</code>?</div><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">trait Chunk[+A]:
   def foreach(f: A =&gt; Unit): Unit =
     var i = 0
@@ -610,8 +619,38 @@ object Chunk:
           i += 1
         }
       }</code></pre></div></div></div></section>
-<section id="_chunk_instances" class="columns"><h2>Chunk Instances</h2><div class="slide-content"><div class="ulist column"><ul><li><p>Empty</p></li><li><p>Singleton</p></li><li><p>ArraySlice</p></li><li><p>IndexedSeq</p></li></ul></div>
-<div class="ulist column"><ul><li><p>mutable.Buffer</p></li><li><p>Queue[Chunk[A]]</p></li><li><p>java.nio.{ByteBuffer, CharBuffer}</p></li><li><p>scodec.bits.ByteVector</p></li></ul></div></div></section></div></div><script src="node_modules/reveal.js/dist/reveal.js"></script><script>Array.prototype.slice.call(document.querySelectorAll('.slides section')).forEach(function(slide) {
+<section id="_what_about_lookup_by_index"><h2>What about lookup by index?</h2></section>
+<section id="_what_about_lookup_by_index_2"><h2>What about lookup by index?</h2><div class="slide-content"><div class="ulist"><ul><li><p>Compute an array of accumulated sizes</p><div class="ulist"><ul><li><p>sizes(0) = size of first chunk</p></li><li><p>sizes(1) = sum of sizes of first and second chunk</p></li></ul></div></li><li><p>To lookup element at index i:</p><div class="ulist"><ul><li><p>Binary search sizes to find smallest entry greater than i</p></li><li><p>The chunk at the resulting index contains the desired element</p></li></ul></div></li></ul></div></div></section>
+<section id="_what_about_lookup_by_index_3"><h2>What about lookup by index?</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-line-numbers="2,3,4,5,6,7,8,9,10,11,12,13|15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45" data-lang="scala">class Queue[+A](...):
+  private[this] lazy val accumulatedSizes: (Array[Int], Array[Chunk[O]]) =
+    val sizes = new Array[Int](chunks.size)
+    val arr = new Array[Chunk[A]](chunks.size)
+    var accSize = 0
+    var i = 0
+    chunks.foreach { c =&gt;
+      accSize += c.size
+      sizes(i) = accSize
+      arr(i) = c
+      i += 1
+    }
+    (sizes, arr)
+
+  def apply(i: Int): A =
+    if i &lt; 0 || i &gt;= size
+    then throw new IndexOutOfBoundsException()
+    if i == 0 then chunks.head(0)
+    else if i == size - 1 then chunks.last.last.get
+    else
+      val (sizes, chunks) = accumulatedSizes
+      val j = java.util.Arrays.binarySearch(sizes, i)
+      if j &gt;= 0 then
+        chunks(j + 1)(0)
+      else
+        val k = -(j + 1)
+        val accSizeBefore = if k == 0 then 0
+                            else sizes(k - 1)
+        chunks(k)(i - accSizeBefore)</code></pre></div></div></div></section>
+<section id="_runtimes"><h2>Runtimes</h2><div class="slide-content"><div class="ulist"><ul><li><p>For a <code>Chunk.Queue</code> with n elements and m constituent chunks:</p><div class="ulist"><ul><li><p><code>apply</code> is <code>O(log m)</code></p></li><li><p>Worst case <code>m == n</code></p></li></ul></div></li></ul></div></div></section></div></div><script src="node_modules/reveal.js/dist/reveal.js"></script><script>Array.prototype.slice.call(document.querySelectorAll('.slides section')).forEach(function(slide) {
   if (slide.getAttribute('data-background-color')) return;
   // user needs to explicitly say he wants CSS color to override otherwise we might break custom css or theme (#226)
   if (!(slide.classList.contains('canvas') || slide.classList.contains('background'))) return;
