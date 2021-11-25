@@ -1,2 +1,2 @@
 #!/bin/bash
-npx onchange chunks.adoc -- npx asciidoctor-revealjs chunks.ado
+npx onchange index.adoc -- npx asciidoctor-revealjs index.adoc
