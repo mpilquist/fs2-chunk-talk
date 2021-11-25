@@ -1,0 +1,430 @@
+= fs2.Chunk
+:source-highlighter: highlightjs
+:highlightjs-languages: scala
+:highlightjs-theme: css/solarized-dark.css
+:revealjs_theme: moon
+:revealjs_hash: true
+:customcss: css/presentation.css
+:icons: font
+
+[transition=fade-out]
+== A chunk is...
+
+* an _immutable_, _strict_, _finite_ sequence of values
+* that supports _efficient index-based random access_ of elements
+
+[transition=fade-in]
+== A +++<del>+++chunk+++</del>+++ Vector is...
+
+* an _immutable_, _strict_, _finite_ sequence of values
+* that supports _efficient index-based random access_ of elements
+
+== Why not use Vector?
+
+[source,scala]
+----
+trait Socket[F[_]]:
+  def reads: Stream[F, Byte]
+
+trait Files[F[_]]:
+  def readAll(path: Path): Stream[F, Byte]
+----
+
+* If streams passed around vectors, we'd need to copy the underlying buffers.
+
+== Why not use Vector?
+
+|===
+|Size|0|1|10|100|1K|10K
+
+|2.12 Vector|56|216|216|792|4824|46728
+|2.13 Vector|40|56|88|536|4696|46528
+|Array|16|24|32|120|1016|10016
+|Chunk|16|32|64|152|1048|10048
+|===
+
+[.notes]
+* `Vector[Byte]`, `Array[Byte]`, and `Chunk[Byte]`
+* Object size reported by Spark's `SizeEstimator.estimate`
+
+
+== A chunk is...
+
+* an _immutable_, _strict_, _finite_ sequence of values
+* that supports _efficient index-based random access_ of elements
+* that's _memory efficient_ for all sizes
+* that _avoids unnecessary copying_
+
+== A chunk is finite
+
+[source,scala]
+----
+trait Chunk[+A]:
+  def size: Int
+----
+
+== A chunk has efficient random acceess
+
+[source,scala]
+----
+trait Chunk[+A]:
+  def size: Int
+  def apply(idx: Int): A
+----
+
+== A chunk is memory efficient
+
+[source,scala]
+----
+object Chunk:
+  val empty: Chunk[Nothing] = new:
+    def size = 0
+    def apply(idx: Int) = throw new IndexOutOfBoundsException
+
+  def singleton[A](a: A): Chunk[A] = new:
+    def size = 1
+    def apply(idx: Int) = idx match
+      case 0 => a
+      case _ => throw new IndexOutOfBoundsException
+
+  def array[A](arr: Array[A]): Chunk[A] = new:
+    def size = arr.length
+    def apply(idx: Int) = arr(idx)
+----
+
+== A chunk avoids copying
+
+[source,scala]
+----
+object Chunk:
+  def vector[A](as: Vector[A]): Chunk[A] = new:
+    def size = as.size
+    def apply(idx: Int) = as(idx)
+
+  import java.nio.ByteBuffer
+
+  def byteBuffer(buffer: ByteBuffer): Chunk[Byte] = new:
+    private val b = buffer.duplicate().asReadOnlyBuffer
+    def size = b.remaining
+    def apply(idx: Int) = b.get(b.position + idx)
+----
+
+== Combinators: foreach
+
+[source,scala]
+----
+trait Chunk[+A]:
+  def size: Int
+  def apply(idx: Int): A
+
+  def foreach(f: A => Unit): Unit =
+    var i = 0
+    while (i < size)
+      f(apply(i))
+      i += 1
+----
+
+== Combinators: foreachWithIndex
+
+[source,scala]
+----
+trait Chunk[+A]:
+  def size: Int
+  def apply(idx: Int): A
+
+  def foreachWithIndex(f: (A, Int) => Unit): Unit =
+    var i = 0
+    while (i < size)
+      f(apply(i), i)
+      i += 1
+----
+
+== Combinators: map
+
+[source,scala]
+----
+trait Chunk[+A]:
+  def map[B](f: A => B): Chunk[B] =
+    ???
+----
+
+== Combinators: map
+
+[source,scala]
+----
+trait Chunk[+A]:
+  def map[B](f: A => B): Chunk[B] =
+    var arr = new Array[B](size)                <1>
+    foreachWithIndex((a, i) => arr(i) = f(a))
+    Chunk.array(arr)
+----
+<1> `cannot find class tag for element type B`
+
+== Combinators: mapCompact
+
+[source,scala]
+----
+trait Chunk[+A]:
+  def mapCompact[B: ClassTag](f: A => B): Chunk[B] =   <1>
+    var arr = new Array[B](size)
+    foreachWithIndex((a, i) => arr(i) = f(a))
+    Chunk.array(arr)
+----
+<1> Add a `ClassTag` constraint
+
+== Combinators: mapCompact
+
+`mapCompact` doesn't exist on `Chunk` - why?
+
+* `Function1` is not specialized for all primitives
++
+[source,scala]
+----
+trait Function1[
+  @specialized(Int, Long, Double) -T1,
+  @specialized(Int, Long, Float, Double, Boolean, Unit) +R]
+----
++
+* `ClassTag` constraints virally propagate
+* Forces folks to chose between `map` and `mapConcat`
+
+== Combinators: map
+
+[source,scala]
+----
+trait Chunk[+A]:
+  def map[B](f: A => B): Chunk[B] =
+    var arr = new Array[Any](size)               <1>
+    foreachWithIndex((a, i) => arr(i) = f(a))
+    Chunk.array(arr).asInstanceOf[Chunk[B]]      <2>
+----
+<1> Create an an `Array[Any]` instead
+<2> Unsound! Must ensure the underlying array is never accessed as an `Array[B]`
+
+== Combinators: compact
+
+[source,scala]
+----
+trait Chunk[+A]:
+  def toArray[A2 >: A: ClassTag]: Array[A] =
+    val arr = new Array[A2](size)
+    foreachWithIndex((a, i) => arr(i) = a)
+    arr
+
+  def compact[A2 >: A: ClassTag]: Chunk[A] =
+    Chunk.array(toArray)
+----
+
+== Combinators: filter
+
+[source,scala]
+----
+trait Chunk[+A]:
+  def filter(p: A => Boolean): Chunk[A] =
+    ???
+----
+
+== Combinators: filter
+
+[source,scala]
+----
+trait Chunk[+A]:
+  def filter(p: A => Boolean): Chunk[A] =
+    val b = collection.mutable.ArrayBuilder.make[Any]  <1> <2>
+    b.sizeHint(size)
+    foreach(a => if p(a) then b += a)
+    Chunk.array(b.result()).asInstanceOf[Chunk[A]]
+----
+<1> Use `ArrayBuilder` instead of `Array` since we don't know final size
+<2> Use `Any` like in `map`, resulting in boxing of primitives
+
+== A chunk is...
+
+* an _immutable_, _strict_, _finite_ sequence of values
+* that supports _efficient index-based random access_ of elements
+* that's _memory efficient_ for all sizes
+* that _avoids unnecessary copying_
+
+[transition=slide-in fade-out,transition-speed=fast]
+== Avoiding Copying
+
+[source,scala,linenumbers]
+----
+val huge: Chunk[Byte] = ???
+val crlf: Chunk[Byte] = Chunk.array("\r\n".getBytes)
+
+val discouraged = Stream.chunk(huge ++ crlf)
+val encouraged = Stream.chunk(huge) ++ Stream.chunk(crlf)
+----
+How can we discourage copying?
+
+[transition=fade,transition-speed=fast]
+== Avoiding Copying
+
+[source,scala,highlight=4]
+----
+val huge: Chunk[Byte] = ???
+val crlf: Chunk[Byte] = Chunk.array("\r\n".getBytes)
+
+val discouraged = Stream.chunk(Chunk.concat(List(huge, crlf)))
+val encouraged = Stream.chunk(huge) ++ Stream.chunk(crlf)
+----
+Make it inconvenient!
+
+== concat
+
+[source,scala,linenumbers]
+----
+object Chunk:
+  def concat[A: ClassTag](chunks: Seq[Chunk[A]]): Chunk[A] =
+    val totalSize = chunks.foldMap(_.size)
+    val arr = new Array[A](totalSize)
+    var offset = 0
+    chunks.foreach { c =>
+      if !c.isEmpty then
+        c.copyToArray(arr, offset)
+        offset += c.size
+    }
+    Chunk.array(arr)
+----
+
+== unconsN
+
+[source,scala,linenumbers,highlight=1..4|5-9|10|11|12-18]
+----
+def unconsN[F[_], O](
+  s: Stream[F, O],
+  n: Int
+): Pull[F, Nothing, Option[(Chunk[O], Stream[F, O])]] =
+  def go(
+    acc: Queue[Chunk[O]], 
+    s: Stream[F, O], 
+    n: Int
+  ): Pull[F, Nothing, Option[(Chunk[O], Stream[F, O])]] =
+    s.pull.uncons.flatMap {
+      case None => Pull.pure(Chunk.concat(acc))
+      case Some((hd, tl)) =>
+        if hd.size < n then
+          go(acc :+ hd, tl, n - hd.size)
+        else
+          val (pfx, sfx) = hd.splitAt(n)
+          val out = Chunk.concat(acc :+ pfx)
+          Pull.pure((out, tl.cons(sfx))
+    }
+  go(Queue.empty, s, n)
+----
+
+== unconsN
+
+[%step]
+* Problem: `concat` requires a `ClassTag[O]`
+* Option 1: add `ClassTag` constraint
++
+[source,scala]
+----
+def unconsN[F[_], O: ClassTag](...)
+----
++
+* Option 2: change return type to `Queue[Chunk[O]]`
++
+[source,scala]
+----
+def unconsN[F[_], O](
+  ...
+): Pull[F, Nothing, Option[(Queue[Chunk[O]], Stream[F, O])]]
+----
++
+* Option 3: make `Queue[Chunk[O]]` a constructor of `Chunk[O]`
+
+== Chunk.Queue
+
+[source,scala,linenumbers,highlight=1-7|9-11|13-14|16-23]
+----
+import scala.collection.immutable.Queue as SQueue
+
+object Chunk:
+  class Queue[+A] private (
+    val chunks: SQueue[Chunk[A]], 
+    val size: Int
+  ) extends Chunk[A]:
+
+    def +:(c: Chunk[A]): Queue[A] =
+      if c.isEmpty then this 
+      else new Queue(chunks :+ c, size + c.size)
+
+    def foreach(f: A => Unit): Unit =
+      chunks.foreach(_.foreach(f))
+
+    def apply(i: Int): O =
+      if i < 0 || i >= size
+      then throw new IndexOutOfBoundsException()
+      def go(chunks: SQueue[Chunk[O]], offset: Int): O =
+        val head = chunks.head
+        if offset < head.size then head(offset)
+        else go(chunks.tail, offset - head.size)
+      go(chunks, i)
+----
+
+== Chunk.Queue
+
+[%step]
+.What's asymptotic runtime of `Chunk.Queue#apply`?
+* If number of constituent chunks is much smaller than total size, then O(1)
+* As number of constituent chunks approaches total size, runtime approaches O(n)
+
+== Chunk.Queue
+
+.What's asymptotic runtime of `foreach`?
+[source,scala]
+----
+trait Chunk[+A]:
+  def foreach(f: A => Unit): Unit =
+    var i = 0
+    while (i < size)
+      f(apply(i))
+      i += 1
+----
+
+[%step]
+* O(n) when number of constituent chunks much smaller than total size
+* O(n^2^) when number of constituent chunks approaches total size
+
+== Restoring foreach linearity
+[source,scala,linenumbers,highlight=7-8|10-17]
+----
+object Chunk:
+  class Queue[+A] private (
+    val chunks: SQueue[Chunk[A]], 
+    val size: Int
+  ) extends Chunk[A]:
+
+    def foreach(f: A => Unit): Unit =
+      chunks.foreach(_.foreach(f))
+
+    def foreachWithIndex(f: (A, Int) => Unit): Unit =
+      var i = 0
+      chunks.foreach { chunk =>
+        chunk.foreach { a => 
+          f(a, i)
+          i += 1
+        }
+      }
+----
+
+
+
+[.columns]
+== Chunk Instances
+
+[.column]
+* Empty
+* Singleton
+* ArraySlice
+* IndexedSeq
+
+[.column]
+* mutable.Buffer
+* Queue[Chunk[A]]
+* java.nio.{ByteBuffer, CharBuffer}
+* scodec.bits.ByteVector
+
