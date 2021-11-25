@@ -437,6 +437,21 @@ object Chunk:
 ** Binary search sizes to find smallest entry greater than i
 ** The chunk at the resulting index contains the desired element
 
+[.columns]
+== What about lookup by index?
+
+[.column]
+image::images/chunks-accum.png[]
+
+[.column]
+[source,scala]
+----
+apply(20)
+> find smallest acc > 20
+> returns idx = 3, acc = 34 
+> return chunks(idx)(20 - 14)
+----
+
 == What about lookup by index?
 
 [source,scala,highlight=2-13|15-45]
@@ -475,5 +490,6 @@ class Queue[+A](...):
 == Runtimes
 
 * For a `Chunk.Queue` with n elements and m constituent chunks:
-** `apply` is `O(log m)`
+** first call to `apply` is `O(m log m)`
+** subsequent calls are `O(log m)`
 ** Worst case `m == n`
