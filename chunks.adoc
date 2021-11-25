@@ -7,6 +7,8 @@
 :customcss: css/presentation.css
 :icons: font
 
+image::images/fs2-logo.png[]
+
 [transition=fade-out]
 == A chunk is...
 
@@ -14,12 +16,12 @@
 * that supports _efficient index-based random access_ of elements
 
 [transition=fade-in]
-== A +++<del>+++chunk+++</del>+++ Vector is...
+=== A +++<del>+++chunk+++</del>+++ Vector is...
 
 * an _immutable_, _strict_, _finite_ sequence of values
 * that supports _efficient index-based random access_ of elements
 
-== Why not use Vector?
+=== Why not use Vector?
 
 [source,scala]
 ----
@@ -32,7 +34,7 @@ trait Files[F[_]]:
 
 * If streams passed around vectors, we'd need to copy the underlying buffers.
 
-== Why not use Vector?
+=== Why not use Vector?
 
 |===
 |Size|0|1|10|100|1K|10K
@@ -148,7 +150,7 @@ trait Chunk[+A]:
     ???
 ----
 
-== Combinators: map
+=== Combinators: map
 
 [source,scala]
 ----
@@ -160,7 +162,7 @@ trait Chunk[+A]:
 ----
 <1> `cannot find class tag for element type B`
 
-== Combinators: mapCompact
+=== Combinators: mapCompact
 
 [source,scala]
 ----
@@ -172,7 +174,7 @@ trait Chunk[+A]:
 ----
 <1> Add a `ClassTag` constraint
 
-== Combinators: mapCompact
+=== Combinators: mapCompact
 
 `mapCompact` doesn't exist on `Chunk` - why?
 
@@ -188,7 +190,7 @@ trait Function1[
 * `ClassTag` constraints virally propagate
 * Forces folks to chose between `map` and `mapConcat`
 
-== Combinators: map
+=== Combinators: map
 
 [source,scala]
 ----
@@ -201,7 +203,7 @@ trait Chunk[+A]:
 <1> Create an an `Array[Any]` instead
 <2> Unsound! Must ensure the underlying array is never accessed as an `Array[B]`
 
-== Combinators: compact
+=== Combinators: compact
 
 [source,scala]
 ----
@@ -224,7 +226,7 @@ trait Chunk[+A]:
     ???
 ----
 
-== Combinators: filter
+=== Combinators: filter
 
 [source,scala]
 ----
@@ -259,7 +261,7 @@ val encouraged = Stream.chunk(huge) ++ Stream.chunk(crlf)
 How can we discourage copying?
 
 [transition=fade,transition-speed=fast]
-== Avoiding Copying
+=== Avoiding Copying
 
 [source,scala,highlight=4]
 ----
@@ -271,7 +273,7 @@ val encouraged = Stream.chunk(huge) ++ Stream.chunk(crlf)
 ----
 Make it inconvenient!
 
-== concat
+=== concat
 
 [source,scala,linenumbers]
 ----
@@ -314,7 +316,7 @@ def unconsN[F[_], O](
   go(Queue.empty, s, n)
 ----
 
-== unconsN
+=== unconsN
 
 [%step]
 * Problem: `concat` requires a `ClassTag[O]`
@@ -366,7 +368,7 @@ object Chunk:
       go(chunks, i)
 ----
 
-== Chunk.Queue#++
+=== Chunk.Queue#++
 
 [source,scala]
 ----
@@ -380,6 +382,32 @@ trait Chunk[+A]:
         case that                  => Chunk.Queue(this, that)
 ----
 
+=== unconsN Redux
+
+[source,scala,linenumbers,highlight=6|11|14|17]
+----
+def unconsN[F[_], O](
+  s: Stream[F, O],
+  n: Int
+): Pull[F, Nothing, Option[(Chunk[O], Stream[F, O])]] =
+  def go(
+    acc: Chunk[O], 
+    s: Stream[F, O], 
+    n: Int
+  ): Pull[F, Nothing, Option[(Chunk[O], Stream[F, O])]] =
+    s.pull.uncons.flatMap {
+      case None => Pull.pure(acc)
+      case Some((hd, tl)) =>
+        if hd.size < n then
+          go(acc ++ hd, tl, n - hd.size)
+        else
+          val (pfx, sfx) = hd.splitAt(n)
+          val out = acc ++ pfx
+          Pull.pure((out, tl.cons(sfx))
+    }
+  go(Queue.empty, s, n)
+----
+
 == Chunk.Queue Runtime
 
 [%step]
@@ -387,7 +415,7 @@ trait Chunk[+A]:
 * If number of constituent chunks is much smaller than total size, then O(1)
 * As number of constituent chunks approaches total size, runtime approaches O(n)
 
-== Chunk.Queue
+=== Chunk.Queue
 
 .What's asymptotic runtime of `foreach`?
 [source,scala]
@@ -404,7 +432,7 @@ trait Chunk[+A]:
 * O(n) when number of constituent chunks much smaller than total size
 * O(n^2^) when number of constituent chunks approaches total size
 
-== Restoring foreach linearity
+=== Restoring foreach linearity
 [source,scala,linenumbers,highlight=7-8|10-17]
 ----
 object Chunk:
@@ -428,7 +456,7 @@ object Chunk:
 
 == What about lookup by index?
 
-== What about lookup by index?
+=== What about lookup by index?
 
 * Compute an array of accumulated sizes
 ** sizes(0) = size of first chunk
@@ -436,9 +464,10 @@ object Chunk:
 * To lookup element at index i:
 ** Binary search sizes to find smallest entry greater than i
 ** The chunk at the resulting index contains the desired element
+* (Suggested by fs2 maintainer Diego E. Alonso Blas)
 
 [.columns]
-== What about lookup by index?
+=== What about lookup by index?
 
 [.column]
 image::images/chunks-accum.png[]
@@ -452,7 +481,7 @@ apply(20)
 > return chunks(idx)(20 - 14)
 ----
 
-== What about lookup by index?
+=== What about lookup by index?
 
 [source,scala,highlight=2-13|15-45]
 ----
@@ -487,9 +516,44 @@ class Queue[+A](...):
         chunks(k)(i - accSizeBefore)
 ----
 
-== Runtimes
+=== Runtimes
 
 * For a `Chunk.Queue` with n elements and m constituent chunks:
 ** first call to `apply` is `O(m log m)`
 ** subsequent calls are `O(log m)`
 ** Worst case `m == n`
+
+== Wrap-up
+
+=== A chunk is...
+
+* an _immutable_, **_mostly_** _strict_, _finite_ sequence of values
+* that supports **_mostly_** _efficient index-based random access_ of elements
+* that's _memory efficient_ for all sizes
+* that _avoids unnecessary copying_
+
+[%notitle]
+=== Design
+
+Design is a series of logical decisions.
+
+[%notitle]
+=== Design
+
+[.line-through]
+Design is a series of logical decisions.
+
+Design is an iterative process of failures and successes, informed by experiments and analysis.
+
+[.columns]
+=== Summary
+
+[.column]
+* Identify important properties
+* Constraints provide tension
+* Be open to relaxing constraints
+* Benchmark common usage patterns
+* Iterate
+
+[.column]
+image::images/fs2-logo.png[]

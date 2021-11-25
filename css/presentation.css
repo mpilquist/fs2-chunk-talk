@@ -2,11 +2,15 @@
   text-transform: none;
 }
 
-.reveal .tableblock table th, .reveal .tableblock table td {
+.reveal table.tableblock th, .reveal table.tableblock td {
   padding: 0.05em 0.3em 0.05em 0.3em;
   font-size: 0.6em;
 }
 
 .notes {
   font-size: 0.6em;
+}
+
+.line-through {
+  text-decoration: line-through;
 }

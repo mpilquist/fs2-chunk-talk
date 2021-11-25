@@ -413,16 +413,14 @@ ul.byline {
 ul.byline li + li {
   margin-top: 0.25em;
 }
-</style><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/v4-shims.min.css"><link rel="stylesheet" href="css/presentation.css"></head><body><div class="reveal"><div class="slides"><section class="title" data-state="title"><h1>fs2.Chunk</h1></section><section id="_a_chunk_is" data-transition="fade-out"><h2>A chunk is&#8230;&#8203;</h2><div class="slide-content"><div class="ulist"><ul><li><p>an <em>immutable</em>, <em>strict</em>, <em>finite</em> sequence of values</p></li><li><p>that supports <em>efficient index-based random access</em> of elements</p></li></ul></div></div></section>
-<section id="_a_chunk_vector_is" data-transition="fade-in"><h2>A <del>chunk</del> Vector is&#8230;&#8203;</h2><div class="slide-content"><div class="ulist"><ul><li><p>an <em>immutable</em>, <em>strict</em>, <em>finite</em> sequence of values</p></li><li><p>that supports <em>efficient index-based random access</em> of elements</p></li></ul></div></div></section>
-<section id="_why_not_use_vector"><h2>Why not use Vector?</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">trait Socket[F[_]]:
+</style><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/v4-shims.min.css"><link rel="stylesheet" href="css/presentation.css"></head><body><div class="reveal"><div class="slides"><section class="title" data-state="title"><h1>fs2.Chunk</h1><div class="preamble"><div class="imageblock"><img src="images/fs2-logo.png" alt="fs2 logo"></div></div></section>
+<section><section id="_a_chunk_is" data-transition="fade-out"><h2>A chunk is&#8230;&#8203;</h2><div class="slide-content"><div class="ulist"><ul><li><p>an <em>immutable</em>, <em>strict</em>, <em>finite</em> sequence of values</p></li><li><p>that supports <em>efficient index-based random access</em> of elements</p></li></ul></div></div></section><section id="_a_chunk_vector_is" data-transition="fade-in"><h2>A <del>chunk</del> Vector is&#8230;&#8203;</h2><div class="slide-content"><div class="ulist"><ul><li><p>an <em>immutable</em>, <em>strict</em>, <em>finite</em> sequence of values</p></li><li><p>that supports <em>efficient index-based random access</em> of elements</p></li></ul></div></div></section><section id="_why_not_use_vector"><h2>Why not use Vector?</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">trait Socket[F[_]]:
   def reads: Stream[F, Byte]
 
 trait Files[F[_]]:
   def readAll(path: Path): Stream[F, Byte]</code></pre></div></div>
-<div class="ulist"><ul><li><p>If streams passed around vectors, we&#8217;d need to copy the underlying buffers.</p></li></ul></div></div></section>
-<section id="_why_not_use_vector_2"><h2>Why not use Vector?</h2><div class="slide-content"><table class="tableblock frame-all grid-all" style="width:100%"><colgroup><col style="width:14.2857%"><col style="width:14.2857%"><col style="width:14.2857%"><col style="width:14.2857%"><col style="width:14.2857%"><col style="width:14.2857%"><col style="width:14.2858%"></colgroup><thead><tr><th class="tableblock halign-left valign-top">Size</th><th class="tableblock halign-left valign-top">0</th><th class="tableblock halign-left valign-top">1</th><th class="tableblock halign-left valign-top">10</th><th class="tableblock halign-left valign-top">100</th><th class="tableblock halign-left valign-top">1K</th><th class="tableblock halign-left valign-top">10K</th></tr><tbody><tr><td class="tableblock halign-left valign-top"><p class="tableblock">2.12 Vector</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">56</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">216</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">216</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">792</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">4824</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">46728</p></td></tr><tr><td class="tableblock halign-left valign-top"><p class="tableblock">2.13 Vector</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">40</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">56</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">88</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">536</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">4696</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">46528</p></td></tr><tr><td class="tableblock halign-left valign-top"><p class="tableblock">Array</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">16</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">24</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">32</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">120</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">1016</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">10016</p></td></tr><tr><td class="tableblock halign-left valign-top"><p class="tableblock">Chunk</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">16</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">32</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">64</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">152</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">1048</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">10048</p></td></tr></table>
-<div class="ulist notes"><ul><li><p><code>Vector[Byte]</code>, <code>Array[Byte]</code>, and <code>Chunk[Byte]</code></p></li><li><p>Object size reported by Spark&#8217;s <code>SizeEstimator.estimate</code></p></li></ul></div></div></section>
+<div class="ulist"><ul><li><p>If streams passed around vectors, we&#8217;d need to copy the underlying buffers.</p></li></ul></div></div></section><section id="_why_not_use_vector_2"><h2>Why not use Vector?</h2><div class="slide-content"><table class="tableblock frame-all grid-all" style="width:100%"><colgroup><col style="width:14.2857%"><col style="width:14.2857%"><col style="width:14.2857%"><col style="width:14.2857%"><col style="width:14.2857%"><col style="width:14.2857%"><col style="width:14.2858%"></colgroup><thead><tr><th class="tableblock halign-left valign-top">Size</th><th class="tableblock halign-left valign-top">0</th><th class="tableblock halign-left valign-top">1</th><th class="tableblock halign-left valign-top">10</th><th class="tableblock halign-left valign-top">100</th><th class="tableblock halign-left valign-top">1K</th><th class="tableblock halign-left valign-top">10K</th></tr><tbody><tr><td class="tableblock halign-left valign-top"><p class="tableblock">2.12 Vector</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">56</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">216</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">216</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">792</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">4824</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">46728</p></td></tr><tr><td class="tableblock halign-left valign-top"><p class="tableblock">2.13 Vector</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">40</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">56</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">88</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">536</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">4696</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">46528</p></td></tr><tr><td class="tableblock halign-left valign-top"><p class="tableblock">Array</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">16</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">24</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">32</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">120</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">1016</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">10016</p></td></tr><tr><td class="tableblock halign-left valign-top"><p class="tableblock">Chunk</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">16</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">32</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">64</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">152</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">1048</p></td><td class="tableblock halign-left valign-top"><p class="tableblock">10048</p></td></tr></table>
+<div class="ulist notes"><ul><li><p><code>Vector[Byte]</code>, <code>Array[Byte]</code>, and <code>Chunk[Byte]</code></p></li><li><p>Object size reported by Spark&#8217;s <code>SizeEstimator.estimate</code></p></li></ul></div></div></section></section>
 <section id="_a_chunk_is_2"><h2>A chunk is&#8230;&#8203;</h2><div class="slide-content"><div class="ulist"><ul><li><p>an <em>immutable</em>, <em>strict</em>, <em>finite</em> sequence of values</p></li><li><p>that supports <em>efficient index-based random access</em> of elements</p></li><li><p>that&#8217;s <em>memory efficient</em> for all sizes</p></li><li><p>that <em>avoids unnecessary copying</em></p></li></ul></div></div></section>
 <section id="_a_chunk_is_finite"><h2>A chunk is finite</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">trait Chunk[+A]:
   def size: Int</code></pre></div></div></div></section>
@@ -472,63 +470,54 @@ trait Files[F[_]]:
     while (i &lt; size)
       f(apply(i), i)
       i += 1</code></pre></div></div></div></section>
-<section id="_combinators_map"><h2>Combinators: map</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">trait Chunk[+A]:
+<section><section id="_combinators_map"><h2>Combinators: map</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">trait Chunk[+A]:
   def map[B](f: A =&gt; B): Chunk[B] =
-    ???</code></pre></div></div></div></section>
-<section id="_combinators_map_2"><h2>Combinators: map</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">trait Chunk[+A]:
+    ???</code></pre></div></div></div></section><section id="_combinators_map_2"><h2>Combinators: map</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">trait Chunk[+A]:
   def map[B](f: A =&gt; B): Chunk[B] =
     var arr = new Array[B](size)                <i class="conum" data-value="1"></i><b>(1)</b>
     foreachWithIndex((a, i) =&gt; arr(i) = f(a))
     Chunk.array(arr)</code></pre></div></div>
-<div class="colist arabic"><table><tr><td><i class="conum" data-value="1"></i><b>1</b></td><td><code>cannot find class tag for element type B</code></td></tr></table></div></div></section>
-<section id="_combinators_mapcompact"><h2>Combinators: mapCompact</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">trait Chunk[+A]:
+<div class="colist arabic"><table><tr><td><i class="conum" data-value="1"></i><b>1</b></td><td><code>cannot find class tag for element type B</code></td></tr></table></div></div></section><section id="_combinators_mapcompact"><h2>Combinators: mapCompact</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">trait Chunk[+A]:
   def mapCompact[B: ClassTag](f: A =&gt; B): Chunk[B] =   <i class="conum" data-value="1"></i><b>(1)</b>
     var arr = new Array[B](size)
     foreachWithIndex((a, i) =&gt; arr(i) = f(a))
     Chunk.array(arr)</code></pre></div></div>
-<div class="colist arabic"><table><tr><td><i class="conum" data-value="1"></i><b>1</b></td><td>Add a <code>ClassTag</code> constraint</td></tr></table></div></div></section>
-<section id="_combinators_mapcompact_2"><h2>Combinators: mapCompact</h2><div class="slide-content"><div class="paragraph"><p><code>mapCompact</code> doesn&#8217;t exist on <code>Chunk</code> - why?</p></div>
+<div class="colist arabic"><table><tr><td><i class="conum" data-value="1"></i><b>1</b></td><td>Add a <code>ClassTag</code> constraint</td></tr></table></div></div></section><section id="_combinators_mapcompact_2"><h2>Combinators: mapCompact</h2><div class="slide-content"><div class="paragraph"><p><code>mapCompact</code> doesn&#8217;t exist on <code>Chunk</code> - why?</p></div>
 <div class="ulist"><ul><li><p><code>Function1</code> is not specialized for all primitives</p><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">trait Function1[
   @specialized(Int, Long, Double) -T1,
-  @specialized(Int, Long, Float, Double, Boolean, Unit) +R]</code></pre></div></div></li><li><p><code>ClassTag</code> constraints virally propagate</p></li><li><p>Forces folks to chose between <code>map</code> and <code>mapConcat</code></p></li></ul></div></div></section>
-<section id="_combinators_map_3"><h2>Combinators: map</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">trait Chunk[+A]:
+  @specialized(Int, Long, Float, Double, Boolean, Unit) +R]</code></pre></div></div></li><li><p><code>ClassTag</code> constraints virally propagate</p></li><li><p>Forces folks to chose between <code>map</code> and <code>mapConcat</code></p></li></ul></div></div></section><section id="_combinators_map_3"><h2>Combinators: map</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">trait Chunk[+A]:
   def map[B](f: A =&gt; B): Chunk[B] =
     var arr = new Array[Any](size)               <i class="conum" data-value="1"></i><b>(1)</b>
     foreachWithIndex((a, i) =&gt; arr(i) = f(a))
     Chunk.array(arr).asInstanceOf[Chunk[B]]      <i class="conum" data-value="2"></i><b>(2)</b></code></pre></div></div>
-<div class="colist arabic"><table><tr><td><i class="conum" data-value="1"></i><b>1</b></td><td>Create an an <code>Array[Any]</code> instead</td></tr><tr><td><i class="conum" data-value="2"></i><b>2</b></td><td>Unsound! Must ensure the underlying array is never accessed as an <code>Array[B]</code></td></tr></table></div></div></section>
-<section id="_combinators_compact"><h2>Combinators: compact</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">trait Chunk[+A]:
+<div class="colist arabic"><table><tr><td><i class="conum" data-value="1"></i><b>1</b></td><td>Create an an <code>Array[Any]</code> instead</td></tr><tr><td><i class="conum" data-value="2"></i><b>2</b></td><td>Unsound! Must ensure the underlying array is never accessed as an <code>Array[B]</code></td></tr></table></div></div></section><section id="_combinators_compact"><h2>Combinators: compact</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">trait Chunk[+A]:
   def toArray[A2 &gt;: A: ClassTag]: Array[A] =
     val arr = new Array[A2](size)
     foreachWithIndex((a, i) =&gt; arr(i) = a)
     arr
 
   def compact[A2 &gt;: A: ClassTag]: Chunk[A] =
-    Chunk.array(toArray)</code></pre></div></div></div></section>
-<section id="_combinators_filter"><h2>Combinators: filter</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">trait Chunk[+A]:
+    Chunk.array(toArray)</code></pre></div></div></div></section></section>
+<section><section id="_combinators_filter"><h2>Combinators: filter</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">trait Chunk[+A]:
   def filter(p: A =&gt; Boolean): Chunk[A] =
-    ???</code></pre></div></div></div></section>
-<section id="_combinators_filter_2"><h2>Combinators: filter</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">trait Chunk[+A]:
+    ???</code></pre></div></div></div></section><section id="_combinators_filter_2"><h2>Combinators: filter</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">trait Chunk[+A]:
   def filter(p: A =&gt; Boolean): Chunk[A] =
     val b = collection.mutable.ArrayBuilder.make[Any]  <i class="conum" data-value="1"></i><b>(1)</b> <i class="conum" data-value="2"></i><b>(2)</b>
     b.sizeHint(size)
     foreach(a =&gt; if p(a) then b += a)
     Chunk.array(b.result()).asInstanceOf[Chunk[A]]</code></pre></div></div>
-<div class="colist arabic"><table><tr><td><i class="conum" data-value="1"></i><b>1</b></td><td>Use <code>ArrayBuilder</code> instead of <code>Array</code> since we don&#8217;t know final size</td></tr><tr><td><i class="conum" data-value="2"></i><b>2</b></td><td>Use <code>Any</code> like in <code>map</code>, resulting in boxing of primitives</td></tr></table></div></div></section>
+<div class="colist arabic"><table><tr><td><i class="conum" data-value="1"></i><b>1</b></td><td>Use <code>ArrayBuilder</code> instead of <code>Array</code> since we don&#8217;t know final size</td></tr><tr><td><i class="conum" data-value="2"></i><b>2</b></td><td>Use <code>Any</code> like in <code>map</code>, resulting in boxing of primitives</td></tr></table></div></div></section></section>
 <section id="_a_chunk_is_3"><h2>A chunk is&#8230;&#8203;</h2><div class="slide-content"><div class="ulist"><ul><li><p>an <em>immutable</em>, <em>strict</em>, <em>finite</em> sequence of values</p></li><li><p>that supports <em>efficient index-based random access</em> of elements</p></li><li><p>that&#8217;s <em>memory efficient</em> for all sizes</p></li><li><p>that <em>avoids unnecessary copying</em></p></li></ul></div></div></section>
-<section id="_avoiding_copying" data-transition="slide-in fade-out" data-transition-speed="fast"><h2>Avoiding Copying</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-line-numbers="" data-lang="scala">val huge: Chunk[Byte] = ???
+<section><section id="_avoiding_copying" data-transition="slide-in fade-out" data-transition-speed="fast"><h2>Avoiding Copying</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-line-numbers="" data-lang="scala">val huge: Chunk[Byte] = ???
 val crlf: Chunk[Byte] = Chunk.array("\r\n".getBytes)
 
 val discouraged = Stream.chunk(huge ++ crlf)
-val encouraged = Stream.chunk(huge) ++ Stream.chunk(crlf)</code></pre></div></div>
-<div class="paragraph"><p>How can we discourage copying?</p></div></div></section>
-<section id="_avoiding_copying_2" data-transition="fade" data-transition-speed="fast"><h2>Avoiding Copying</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-line-numbers="4" data-lang="scala">val huge: Chunk[Byte] = ???
+val encouraged = Stream.chunk(huge) ++ Stream.chunk(crlf)</code></pre></div></div><div class="paragraph"><p>How can we discourage copying?</p></div></div></section><section id="_avoiding_copying_2" data-transition="fade" data-transition-speed="fast"><h2>Avoiding Copying</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-line-numbers="4" data-lang="scala">val huge: Chunk[Byte] = ???
 val crlf: Chunk[Byte] = Chunk.array("\r\n".getBytes)
 
 val discouraged = Stream.chunk(Chunk.concat(List(huge, crlf)))
 val encouraged = Stream.chunk(huge) ++ Stream.chunk(crlf)</code></pre></div></div>
-<div class="paragraph"><p>Make it inconvenient!</p></div></div></section>
-<section id="_concat"><h2>concat</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-line-numbers="" data-lang="scala">object Chunk:
+<div class="paragraph"><p>Make it inconvenient!</p></div></div></section><section id="_concat"><h2>concat</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-line-numbers="" data-lang="scala">object Chunk:
   def concat[A: ClassTag](chunks: Seq[Chunk[A]]): Chunk[A] =
     val totalSize = chunks.foldMap(_.size)
     val arr = new Array[A](totalSize)
@@ -538,8 +527,8 @@ val encouraged = Stream.chunk(huge) ++ Stream.chunk(crlf)</code></pre></div></di
         c.copyToArray(arr, offset)
         offset += c.size
     }
-    Chunk.array(arr)</code></pre></div></div></div></section>
-<section id="_unconsn"><h2>unconsN</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-line-numbers="1,2,3,4|5,6,7,8,9|10|11|12,13,14,15,16,17,18" data-lang="scala">def unconsN[F[_], O](
+    Chunk.array(arr)</code></pre></div></div></div></section></section>
+<section><section id="_unconsn"><h2>unconsN</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-line-numbers="1,2,3,4|5,6,7,8,9|10|11|12,13,14,15,16,17,18" data-lang="scala">def unconsN[F[_], O](
   s: Stream[F, O],
   n: Int
 ): Pull[F, Nothing, Option[(Chunk[O], Stream[F, O])]] =
@@ -558,11 +547,10 @@ val encouraged = Stream.chunk(huge) ++ Stream.chunk(crlf)</code></pre></div></di
           val out = Chunk.concat(acc :+ pfx)
           Pull.pure((out, tl.cons(sfx))
     }
-  go(Queue.empty, s, n)</code></pre></div></div></div></section>
-<section id="_unconsn_2"><h2>unconsN</h2><div class="slide-content"><div class="ulist"><ul><li class="fragment"><p>Problem: <code>concat</code> requires a <code>ClassTag[O]</code></p></li><li class="fragment"><p>Option 1: add <code>ClassTag</code> constraint</p><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">def unconsN[F[_], O: ClassTag](...)</code></pre></div></div></li><li class="fragment"><p>Option 2: change return type to <code>Queue[Chunk[O]]</code></p><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">def unconsN[F[_], O](
+  go(Queue.empty, s, n)</code></pre></div></div></div></section><section id="_unconsn_2"><h2>unconsN</h2><div class="slide-content"><div class="ulist"><ul><li class="fragment"><p>Problem: <code>concat</code> requires a <code>ClassTag[O]</code></p></li><li class="fragment"><p>Option 1: add <code>ClassTag</code> constraint</p><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">def unconsN[F[_], O: ClassTag](...)</code></pre></div></div></li><li class="fragment"><p>Option 2: change return type to <code>Queue[Chunk[O]]</code></p><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">def unconsN[F[_], O](
   ...
-): Pull[F, Nothing, Option[(Queue[Chunk[O]], Stream[F, O])]]</code></pre></div></div></li><li class="fragment"><p>Option 3: make <code>Queue[Chunk[O]]</code> a constructor of <code>Chunk[O]</code></p></li></ul></div></div></section>
-<section id="_chunk_queue"><h2>Chunk.Queue</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-line-numbers="1,2,3,4,5,6,7|9,10,11,12,13,14,15|17,18,19,20,21,22,23,24" data-lang="scala">import scala.collection.immutable.Queue as SQueue
+): Pull[F, Nothing, Option[(Queue[Chunk[O]], Stream[F, O])]]</code></pre></div></div></li><li class="fragment"><p>Option 3: make <code>Queue[Chunk[O]]</code> a constructor of <code>Chunk[O]</code></p></li></ul></div></div></section></section>
+<section><section id="_chunk_queue"><h2>Chunk.Queue</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-line-numbers="1,2,3,4,5,6,7|9,10,11,12,13,14,15|17,18,19,20,21,22,23,24" data-lang="scala">import scala.collection.immutable.Queue as SQueue
 
 object Chunk:
   class Queue[+A] private (
@@ -585,24 +573,40 @@ object Chunk:
         val head = chunks.head
         if offset &lt; head.size then head(offset)
         else go(chunks.tail, offset - head.size)
-      go(chunks, i)</code></pre></div></div></div></section>
-<section id="_chunk_queue_2"><h2>Chunk.Queue#++</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">trait Chunk[+A]:
+      go(chunks, i)</code></pre></div></div></div></section><section id="_chunk_queue_2"><h2>Chunk.Queue#++</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">trait Chunk[+A]:
   def ++[A2 &gt;: A](that: Chunk[A2]): Chunk[A2] =
     if isEmpty then that
     else
       that match
         case that if that.isEmpty  =&gt; this
         case that: Chunk.Queue[A2] =&gt; this +: that
-        case that                  =&gt; Chunk.Queue(this, that)</code></pre></div></div></div></section>
-<section id="_chunk_queue_runtime"><h2>Chunk.Queue Runtime</h2><div class="slide-content"><div class="ulist"><div class="title">What&#8217;s asymptotic runtime of <code>Chunk.Queue#apply</code>?</div><ul><li class="fragment"><p>If number of constituent chunks is much smaller than total size, then O(1)</p></li><li class="fragment"><p>As number of constituent chunks approaches total size, runtime approaches O(n)</p></li></ul></div></div></section>
-<section id="_chunk_queue_3"><h2>Chunk.Queue</h2><div class="slide-content"><div class="listingblock"><div class="title">What&#8217;s asymptotic runtime of <code>foreach</code>?</div><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">trait Chunk[+A]:
+        case that                  =&gt; Chunk.Queue(this, that)</code></pre></div></div></div></section><section id="_unconsn_redux"><h2>unconsN Redux</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-line-numbers="6|11|14|17" data-lang="scala">def unconsN[F[_], O](
+  s: Stream[F, O],
+  n: Int
+): Pull[F, Nothing, Option[(Chunk[O], Stream[F, O])]] =
+  def go(
+    acc: Chunk[O],
+    s: Stream[F, O],
+    n: Int
+  ): Pull[F, Nothing, Option[(Chunk[O], Stream[F, O])]] =
+    s.pull.uncons.flatMap {
+      case None =&gt; Pull.pure(acc)
+      case Some((hd, tl)) =&gt;
+        if hd.size &lt; n then
+          go(acc ++ hd, tl, n - hd.size)
+        else
+          val (pfx, sfx) = hd.splitAt(n)
+          val out = acc ++ pfx
+          Pull.pure((out, tl.cons(sfx))
+    }
+  go(Queue.empty, s, n)</code></pre></div></div></div></section></section>
+<section><section id="_chunk_queue_runtime"><h2>Chunk.Queue Runtime</h2><div class="slide-content"><div class="ulist"><div class="title">What&#8217;s asymptotic runtime of <code>Chunk.Queue#apply</code>?</div><ul><li class="fragment"><p>If number of constituent chunks is much smaller than total size, then O(1)</p></li><li class="fragment"><p>As number of constituent chunks approaches total size, runtime approaches O(n)</p></li></ul></div></div></section><section id="_chunk_queue_3"><h2>Chunk.Queue</h2><div class="slide-content"><div class="listingblock"><div class="title">What&#8217;s asymptotic runtime of <code>foreach</code>?</div><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">trait Chunk[+A]:
   def foreach(f: A =&gt; Unit): Unit =
     var i = 0
     while (i &lt; size)
       f(apply(i))
       i += 1</code></pre></div></div>
-<div class="ulist"><ul><li class="fragment"><p>O(n) when number of constituent chunks much smaller than total size</p></li><li class="fragment"><p>O(n<sup>2</sup>) when number of constituent chunks approaches total size</p></li></ul></div></div></section>
-<section id="_restoring_foreach_linearity"><h2>Restoring foreach linearity</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-line-numbers="7,8|10,11,12,13,14,15,16,17" data-lang="scala">object Chunk:
+<div class="ulist"><ul><li class="fragment"><p>O(n) when number of constituent chunks much smaller than total size</p></li><li class="fragment"><p>O(n<sup>2</sup>) when number of constituent chunks approaches total size</p></li></ul></div></div></section><section id="_restoring_foreach_linearity"><h2>Restoring foreach linearity</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-line-numbers="7,8|10,11,12,13,14,15,16,17" data-lang="scala">object Chunk:
   class Queue[+A] private (
     val chunks: SQueue[Chunk[A]],
     val size: Int
@@ -618,15 +622,12 @@ object Chunk:
           f(a, i)
           i += 1
         }
-      }</code></pre></div></div></div></section>
-<section id="_what_about_lookup_by_index"><h2>What about lookup by index?</h2></section>
-<section id="_what_about_lookup_by_index_2"><h2>What about lookup by index?</h2><div class="slide-content"><div class="ulist"><ul><li><p>Compute an array of accumulated sizes</p><div class="ulist"><ul><li><p>sizes(0) = size of first chunk</p></li><li><p>sizes(1) = sum of sizes of first and second chunk</p></li></ul></div></li><li><p>To lookup element at index i:</p><div class="ulist"><ul><li><p>Binary search sizes to find smallest entry greater than i</p></li><li><p>The chunk at the resulting index contains the desired element</p></li></ul></div></li></ul></div></div></section>
-<section id="_what_about_lookup_by_index_3" class="columns"><h2>What about lookup by index?</h2><div class="slide-content"><div class="imageblock column"><img src="images/chunks-accum.png" alt="chunks accum"></div>
+      }</code></pre></div></div></div></section></section>
+<section><section id="_what_about_lookup_by_index"><h2>What about lookup by index?</h2></section><section id="_what_about_lookup_by_index_2"><h2>What about lookup by index?</h2><div class="slide-content"><div class="ulist"><ul><li><p>Compute an array of accumulated sizes</p><div class="ulist"><ul><li><p>sizes(0) = size of first chunk</p></li><li><p>sizes(1) = sum of sizes of first and second chunk</p></li></ul></div></li><li><p>To lookup element at index i:</p><div class="ulist"><ul><li><p>Binary search sizes to find smallest entry greater than i</p></li><li><p>The chunk at the resulting index contains the desired element</p></li></ul></div></li><li><p>(Suggested by fs2 maintainer Diego E. Alonso Blas)</p></li></ul></div></div></section><section id="_what_about_lookup_by_index_3" class="columns"><h2>What about lookup by index?</h2><div class="slide-content"><div class="imageblock column"><img src="images/chunks-accum.png" alt="chunks accum"></div>
 <div class="listingblock column"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">apply(20)
 &gt; find smallest acc &gt; 20
 &gt; returns idx = 3, acc = 34
-&gt; return chunks(idx)(20 - 14)</code></pre></div></div></div></section>
-<section id="_what_about_lookup_by_index_4"><h2>What about lookup by index?</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-line-numbers="2,3,4,5,6,7,8,9,10,11,12,13|15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45" data-lang="scala">class Queue[+A](...):
+&gt; return chunks(idx)(20 - 14)</code></pre></div></div></div></section><section id="_what_about_lookup_by_index_4"><h2>What about lookup by index?</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-line-numbers="2,3,4,5,6,7,8,9,10,11,12,13|15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45" data-lang="scala">class Queue[+A](...):
   private[this] lazy val accumulatedSizes: (Array[Int], Array[Chunk[O]]) =
     val sizes = new Array[Int](chunks.size)
     val arr = new Array[Chunk[A]](chunks.size)
@@ -654,8 +655,10 @@ object Chunk:
         val k = -(j + 1)
         val accSizeBefore = if k == 0 then 0
                             else sizes(k - 1)
-        chunks(k)(i - accSizeBefore)</code></pre></div></div></div></section>
-<section id="_runtimes"><h2>Runtimes</h2><div class="slide-content"><div class="ulist"><ul><li><p>For a <code>Chunk.Queue</code> with n elements and m constituent chunks:</p><div class="ulist"><ul><li><p>first call to <code>apply</code> is <code>O(m log m)</code></p></li><li><p>subsequent calls are <code>O(log m)</code></p></li><li><p>Worst case <code>m == n</code></p></li></ul></div></li></ul></div></div></section></div></div><script src="node_modules/reveal.js/dist/reveal.js"></script><script>Array.prototype.slice.call(document.querySelectorAll('.slides section')).forEach(function(slide) {
+        chunks(k)(i - accSizeBefore)</code></pre></div></div></div></section><section id="_runtimes"><h2>Runtimes</h2><div class="slide-content"><div class="ulist"><ul><li><p>For a <code>Chunk.Queue</code> with n elements and m constituent chunks:</p><div class="ulist"><ul><li><p>first call to <code>apply</code> is <code>O(m log m)</code></p></li><li><p>subsequent calls are <code>O(log m)</code></p></li><li><p>Worst case <code>m == n</code></p></li></ul></div></li></ul></div></div></section></section>
+<section><section id="_wrap_up"><h2>Wrap-up</h2></section><section id="_a_chunk_is_4"><h2>A chunk is&#8230;&#8203;</h2><div class="slide-content"><div class="ulist"><ul><li><p>an <em>immutable</em>, <strong><em>mostly</em></strong> <em>strict</em>, <em>finite</em> sequence of values</p></li><li><p>that supports <strong><em>mostly</em></strong> <em>efficient index-based random access</em> of elements</p></li><li><p>that&#8217;s <em>memory efficient</em> for all sizes</p></li><li><p>that <em>avoids unnecessary copying</em></p></li></ul></div></div></section><section id="_design"><div class="slide-content"><div class="paragraph"><p>Design is a series of logical decisions.</p></div></div></section><section id="_design_2"><div class="slide-content"><div class="paragraph line-through"><p>Design is a series of logical decisions.</p></div>
+<div class="paragraph"><p>Design is an iterative process of failures and successes, informed by experiments and analysis.</p></div></div></section><section id="_summary" class="columns"><h2>Summary</h2><div class="slide-content"><div class="ulist column"><ul><li><p>Identify important properties</p></li><li><p>Constraints provide tension</p></li><li><p>Be open to relaxing constraints</p></li><li><p>Benchmark common usage patterns</p></li><li><p>Iterate</p></li></ul></div>
+<div class="imageblock column"><img src="images/fs2-logo.png" alt="fs2 logo"></div></div></section></section></div></div><script src="node_modules/reveal.js/dist/reveal.js"></script><script>Array.prototype.slice.call(document.querySelectorAll('.slides section')).forEach(function(slide) {
   if (slide.getAttribute('data-background-color')) return;
   // user needs to explicitly say he wants CSS color to override otherwise we might break custom css or theme (#226)
   if (!(slide.classList.contains('canvas') || slide.classList.contains('background'))) return;
