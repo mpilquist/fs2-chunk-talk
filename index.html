@@ -438,9 +438,10 @@ trait Files[F[_]]:
       case 0 =&gt; a
       case _ =&gt; throw new IndexOutOfBoundsException
 
-  def array[A](arr: Array[A]): Chunk[A] = new:
+  def array[A](arr: Array[A]): Chunk[A] = new:   <i class="conum" data-value="1"></i><b>(1)</b>
     def size = arr.length
-    def apply(idx: Int) = arr(idx)</code></pre></div></div></div></section>
+    def apply(idx: Int) = arr(idx)</code></pre></div></div>
+<div class="colist arabic"><table><tr><td><i class="conum" data-value="1"></i><b>1</b></td><td>Not making a defensive copy for performance reasons</td></tr></table></div></div></section>
 <section id="_a_chunk_avoids_copying"><h2>A chunk avoids copying</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">object Chunk:
   def vector[A](as: Vector[A]): Chunk[A] = new:
     def size = as.size

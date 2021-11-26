@@ -89,10 +89,11 @@ object Chunk:
       case 0 => a
       case _ => throw new IndexOutOfBoundsException
 
-  def array[A](arr: Array[A]): Chunk[A] = new:
+  def array[A](arr: Array[A]): Chunk[A] = new:   <1>
     def size = arr.length
     def apply(idx: Int) = arr(idx)
 ----
+<1> Not making a defensive copy for performance reasons
 
 == A chunk avoids copying
 
