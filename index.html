@@ -449,10 +449,11 @@ trait Files[F[_]]:
 
   import java.nio.ByteBuffer
 
-  def byteBuffer(buffer: ByteBuffer): Chunk[Byte] = new:
+  def byteBuffer(buffer: ByteBuffer): Chunk[Byte] = new:  <i class="conum" data-value="1"></i><b>(1)</b>
     private val b = buffer.duplicate().asReadOnlyBuffer
     def size = b.remaining
-    def apply(idx: Int) = b.get(b.position + idx)</code></pre></div></div></div></section>
+    def apply(idx: Int) = b.get(b.position + idx)</code></pre></div></div>
+<div class="colist arabic"><table><tr><td><i class="conum" data-value="1"></i><b>1</b></td><td>Not making a defensive copy for performance reasons</td></tr></table></div></div></section>
 <section id="_combinators_foreach"><h2>Combinators: foreach</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">trait Chunk[+A]:
   def size: Int
   def apply(idx: Int): A

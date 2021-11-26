@@ -106,11 +106,12 @@ object Chunk:
 
   import java.nio.ByteBuffer
 
-  def byteBuffer(buffer: ByteBuffer): Chunk[Byte] = new:
+  def byteBuffer(buffer: ByteBuffer): Chunk[Byte] = new:  <1>
     private val b = buffer.duplicate().asReadOnlyBuffer
     def size = b.remaining
     def apply(idx: Int) = b.get(b.position + idx)
 ----
+<1> Not making a defensive copy for performance reasons
 
 == Combinators: foreach
 
