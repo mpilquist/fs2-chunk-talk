@@ -549,8 +549,36 @@ val encouraged = Stream.chunk(huge) ++ Stream.chunk(crlf)</code></pre></div></di
     }
   go(Queue.empty, s, n)</code></pre></div></div></div></section><section id="_unconsn_2"><h2>unconsN</h2><div class="slide-content"><div class="ulist"><ul><li class="fragment"><p>Problem: <code>concat</code> requires a <code>ClassTag[O]</code></p></li><li class="fragment"><p>Option 1: add <code>ClassTag</code> constraint</p><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">def unconsN[F[_], O: ClassTag](...)</code></pre></div></div></li><li class="fragment"><p>Option 2: change return type to <code>Queue[Chunk[O]]</code></p><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">def unconsN[F[_], O](
   ...
-): Pull[F, Nothing, Option[(Queue[Chunk[O]], Stream[F, O])]]</code></pre></div></div></li><li class="fragment"><p>Option 3: make <code>Queue[Chunk[O]]</code> a constructor of <code>Chunk[O]</code></p></li></ul></div></div></section></section>
-<section><section id="_chunk_queue"><h2>Chunk.Queue</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-line-numbers="1,2,3,4,5,6,7|9,10,11,12,13,14,15|17,18,19,20,21,22,23,24" data-lang="scala">import scala.collection.immutable.Queue as SQueue
+): Pull[F, Nothing, Option[(Queue[Chunk[O]], Stream[F, O])]]</code></pre></div></div></li><li class="fragment"><p>Option 3: remove <code>ClassTag</code> constraint from <code>concat</code></p></li></ul></div></div></section></section>
+<section><section id="_concat_tagless"><h2>concat tagless</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-line-numbers="4" data-lang="scala">object Chunk:
+  def concat[A](chunks: Seq[Chunk[A]]): Chunk[A] =
+    val totalSize = chunks.foldMap(_.size)
+    val arr = new Array[Any](totalSize)
+    var offset = 0
+    chunks.foreach { c =&gt;
+      if !c.isEmpty then
+        c.copyToArray(arr, offset)
+        offset += c.size
+    }
+    Chunk.array(arr).asInstanceOf[Chunk[A]]</code></pre></div></div><div class="paragraph"><p>Downside: primitives get boxed. Can we fix?</p></div></div></section><section id="_concat_too_clever"><h2>concat too clever</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-line-numbers="1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16|3,4,5,6|10" data-lang="scala">object Chunk:
+  def concat[A](chunks: Seq[Chunk[A]]): Chunk[A] =
+    if chunks.forall(containsOnly[Byte])
+    then concatTagged[Byte](
+           chunks.asInstanceOf[Seq[Chunk[Byte]]]
+         ).asInstanceOf[Chunk[A]]
+    else if ...
+    else concatUntagged(chunks)
+
+  def containsOnly[A](c: Chunk[A])(using ct: ClassTag[A]): Boolean =
+    c.knownElementType == ct || c.forall(_.isInstanceOf[A])
+
+  def concatUntagged[A](chunks: Seq[Chunk[A]]): Chunk[A] =
+    /* store elements in an Array[Any] */
+  def concatTagged[A: ClassTag](chunks: Seq[Chunk[A]]): Chunk[A] = ???
+    /* store elements in an Array[A] */</code></pre></div></div></div></section><section id="_concat_too_clever_2"><h2>concat too clever</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">scalajs&gt; 1.isInstanceOf[Byte]
+res0: Boolean = true</code></pre></div></div>
+<div class="paragraph"><p>Reflection is never safe.<sup class="footnote">[<span class="footnote" title="View footnote.">1</span>]</sup></p></div></div><div class="footnotes"><div class="footnote">1. I made up this Scala.js REPL, but the result is real!</div></div></section></section>
+<section><section id="_unconsn_3"><h2>unconsN</h2><div class="slide-content"><div class="ulist"><ul><li><p>Problem: <code>concat</code> requires a <code>ClassTag[A]</code></p></li><li><p>Option 4: make <code>Queue[Chunk[A]]</code> a subtype of <code>Chunk[A]</code></p></li></ul></div></div></section><section id="_chunk_queue"><h2>Chunk.Queue</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-line-numbers="1,2,3,4,5,6,7|9,10,11,12,13,14,15|17,18,19,20,21,22,23,24" data-lang="scala">import scala.collection.immutable.Queue as SQueue
 
 object Chunk:
   class Queue[+A] private (
@@ -657,7 +685,24 @@ object Chunk:
                             else sizes(k - 1)
         chunks(k)(i - accSizeBefore)</code></pre></div></div></div></section><section id="_runtimes"><h2>Runtimes</h2><div class="slide-content"><div class="ulist"><ul><li><p>For a <code>Chunk.Queue</code> with n elements and m constituent chunks:</p><div class="ulist"><ul><li><p>first call to <code>apply</code> is <code>O(m log m)</code></p></li><li><p>subsequent calls are <code>O(log m)</code></p></li><li><p>Worst case <code>m == n</code></p></li></ul></div></li></ul></div></div></section></section>
 <section><section id="_wrap_up"><h2>Wrap-up</h2></section><section id="_a_chunk_is_4"><h2>A chunk is&#8230;&#8203;</h2><div class="slide-content"><div class="ulist"><ul><li><p>an <em>immutable</em>, <strong><em>mostly</em></strong> <em>strict</em>, <em>finite</em> sequence of values</p></li><li><p>that supports <strong><em>mostly</em></strong> <em>efficient index-based random access</em> of elements</p></li><li><p>that&#8217;s <em>memory efficient</em> for all sizes</p></li><li><p>that <em>avoids unnecessary copying</em></p></li></ul></div></div></section><section id="_design"><div class="slide-content"><div class="paragraph"><p>Design is a series of logical decisions.</p></div></div></section><section id="_design_2"><div class="slide-content"><div class="paragraph line-through"><p>Design is a series of logical decisions.</p></div>
-<div class="paragraph"><p>Design is an iterative process of failures and successes, informed by experiments and analysis.</p></div></div></section><section id="_summary" class="columns"><h2>Summary</h2><div class="slide-content"><div class="ulist column"><ul><li><p>Identify important properties</p></li><li><p>Constraints provide tension</p></li><li><p>Be open to relaxing constraints</p></li><li><p>Benchmark common usage patterns</p></li><li><p>Iterate</p></li></ul></div>
+<div class="paragraph"><p>Design is an iterative process of failures and successes, informed by experiments and analysis.</p></div>
+<div class="paragraph"><p><a href="https://github.com/typelevel/fs2/pull/1159">#1159</a>
+<a href="https://github.com/typelevel/fs2/pull/1202">#1202</a>
+<a href="https://github.com/typelevel/fs2/pull/1275">#1275</a>
+<a href="https://github.com/typelevel/fs2/pull/1712">#1712</a>
+<a href="https://github.com/typelevel/fs2/pull/1715">#1715</a>
+<a href="https://github.com/typelevel/fs2/pull/1745">#1745</a>
+<a href="https://github.com/typelevel/fs2/pull/1746">#1746</a>
+<a href="https://github.com/typelevel/fs2/pull/1856">#1856</a>
+<a href="https://github.com/typelevel/fs2/pull/2180">#2180</a>
+<a href="https://github.com/typelevel/fs2/pull/2181">#2181</a>
+<a href="https://github.com/typelevel/fs2/pull/2380">#2380</a>
+<a href="https://github.com/typelevel/fs2/pull/2381">#2381</a>
+<a href="https://github.com/typelevel/fs2/pull/2630">#2630</a>
+<a href="https://github.com/typelevel/fs2/pull/2631">#2631</a>
+<a href="https://github.com/typelevel/fs2/pull/2679">#2679</a>
+<a href="https://github.com/typelevel/fs2/pull/2680">#2680</a>
+<a href="https://github.com/typelevel/fs2/pull/2720">#2720</a></p></div></div></section><section id="_summary" class="columns"><h2>Summary</h2><div class="slide-content"><div class="ulist column"><ul><li><p>Identify important properties</p></li><li><p>Constraints provide tension</p></li><li><p>Be open to relaxing constraints</p></li><li><p>Benchmark common usage patterns</p></li><li><p>Iterate</p></li></ul></div>
 <div class="imageblock column"><img src="images/fs2-logo.png" alt="fs2 logo"></div></div></section></section></div></div><script src="node_modules/reveal.js/dist/reveal.js"></script><script>Array.prototype.slice.call(document.querySelectorAll('.slides section')).forEach(function(slide) {
   if (slide.getAttribute('data-background-color')) return;
   // user needs to explicitly say he wants CSS color to override otherwise we might break custom css or theme (#226)
