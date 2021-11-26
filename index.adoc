@@ -65,7 +65,7 @@ trait Chunk[+A]:
   def size: Int
 ----
 
-== A chunk has efficient random acceess
+== A chunk has efficient random access
 
 [source,scala]
 ----

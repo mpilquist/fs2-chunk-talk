@@ -424,7 +424,7 @@ trait Files[F[_]]:
 <section id="_a_chunk_is_2"><h2>A chunk is&#8230;&#8203;</h2><div class="slide-content"><div class="ulist"><ul><li><p>an <em>immutable</em>, <em>strict</em>, <em>finite</em> sequence of values</p></li><li><p>that supports <em>efficient index-based random access</em> of elements</p></li><li><p>that&#8217;s <em>memory efficient</em> for all sizes</p></li><li><p>that <em>avoids unnecessary copying</em></p></li></ul></div></div></section>
 <section id="_a_chunk_is_finite"><h2>A chunk is finite</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">trait Chunk[+A]:
   def size: Int</code></pre></div></div></div></section>
-<section id="_a_chunk_has_efficient_random_acceess"><h2>A chunk has efficient random acceess</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">trait Chunk[+A]:
+<section id="_a_chunk_has_efficient_random_access"><h2>A chunk has efficient random access</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">trait Chunk[+A]:
   def size: Int
   def apply(idx: Int): A</code></pre></div></div></div></section>
 <section id="_a_chunk_is_memory_efficient"><h2>A chunk is memory efficient</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">object Chunk:
