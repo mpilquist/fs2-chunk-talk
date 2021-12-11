@@ -32,6 +32,7 @@ trait Files[F[_]]:
   def readAll(path: Path): Stream[F, Byte]
 ----
 
+* Streams move chunks
 * If streams passed around vectors, we'd need to copy the underlying buffers.
 
 === Why not use Vector?
@@ -100,7 +101,7 @@ object Chunk:
 [source,scala]
 ----
 object Chunk:
-  def vector[A](as: Vector[A]): Chunk[A] = new:
+  def indexedSeq[A](as: IndexedSeq[A]): Chunk[A] = new:
     def size = as.size
     def apply(idx: Int) = as(idx)
 
@@ -112,6 +113,45 @@ object Chunk:
     def apply(idx: Int) = b.get(b.position + idx)
 ----
 <1> Not making a defensive copy for performance reasons
+
+=== A chunk avoids copying
+
+[source,scala]
+----
+val huge: Chunk[Byte] = ???
+val pfx: Chunk[Byte] = huge.take(10)
+val sfx: Chunk[Byte] = huge.drop(10)
+----
+
+=== A chunk avoids copying
+
+[source,scala]
+----
+val huge: Chunk[Byte] = ???
+val (prefix, suffix) = huge.splitAt(10)
+process(prefix) >> saveForLater(suffix)
+----
+
+=== A chunk avoids copying
+
+[source,scala]
+----
+case class ArraySlice[+A](values: Array[A],
+                          offset: Int,
+                          size: Int) extends Chunk[A]:
+  require(offset >= 0 && ...)
+
+  def apply(idx: Int) = 
+    if idx < 0 || idx >= size then throw new IndexOutOfBoundsException()
+    else values(offset + idx)
+
+  def splitAt(idx: Int) =                              <1>
+    if idx <= 0 then Chunk.empty -> this
+    else if idx >= size then this -> Chunk.empty
+    else ArraySlice(values, offset, idx) ->
+           ArraySlice(values, offset + idx, length - idx)
+----
+<1> Zero copy `splitAt` at cost of non-strictness and potentially increased memory usage
 
 == Combinators: foreach
 
@@ -191,6 +231,7 @@ trait Function1[
 +
 * `ClassTag` constraints virally propagate
 * Forces folks to chose between `map` and `mapConcat`
+* Doesn't scale to other operations
 
 === Combinators: map
 
