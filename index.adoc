@@ -283,13 +283,6 @@ trait Chunk[+A]:
 <1> Use `ArrayBuilder` instead of `Array` since we don't know final size
 <2> Use `Any` like in `map`, resulting in boxing of primitives
 
-== A chunk is...
-
-* an _immutable_, _strict_, _finite_ sequence of values
-* that supports _efficient index-based random access_ of elements
-* that's _memory efficient_ for all sizes
-* that _avoids unnecessary copying_
-
 [transition=slide-in fade-out,transition-speed=fast]
 == Avoiding Copying
 
@@ -626,7 +619,7 @@ class Queue[+A](...):
 
 === A chunk is...
 
-* an _immutable_, **_mostly_** _strict_, _finite_ sequence of values
+* a **_mostly_** _immutable_, **_mostly_** _strict_, _finite_ sequence of values
 * that supports **_mostly_** _efficient index-based random access_ of elements
 * that's _memory efficient_ for all sizes
 * that _avoids unnecessary copying_
