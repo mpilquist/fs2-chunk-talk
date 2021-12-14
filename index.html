@@ -550,25 +550,25 @@ val encouraged = Stream.chunk(huge) ++ Stream.chunk(crlf)</code></pre></div></di
 <section><section id="_unconsn"><h2>unconsN</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-line-numbers="1,2,3,4|5,6,7,8,9|10|11|12,13,14,15,16,17,18" data-lang="scala">def unconsN[F[_], O](
   s: Stream[F, O],
   n: Int
-): Pull[F, Nothing, Option[(Chunk[O], Stream[F, O])]] =
+): Pull[F, Nothing, (Chunk[O], Stream[F, O])] =
   def go(
     acc: Queue[Chunk[O]],
     s: Stream[F, O],
     n: Int
-  ): Pull[F, Nothing, Option[(Chunk[O], Stream[F, O])]] =
+  ): Pull[F, Nothing, (Chunk[O], Stream[F, O])] =
     s.pull.uncons.flatMap {
-      case None =&gt; Pull.pure(Chunk.concat(acc))
+      case None =&gt; Pull.pure(Chunk.concat(acc) -&gt; Stream.empty)
       case Some((hd, tl)) =&gt;
         if hd.size &lt; n then
           go(acc :+ hd, tl, n - hd.size)
         else
           val (pfx, sfx) = hd.splitAt(n)
           val out = Chunk.concat(acc :+ pfx)
-          Pull.pure((out, tl.cons(sfx))
+          Pull.pure(out -&gt; tl.cons(sfx))
     }
   go(Queue.empty, s, n)</code></pre></div></div></div></section><section id="_unconsn_2"><h2>unconsN</h2><div class="slide-content"><div class="ulist"><ul><li class="fragment"><p>Problem: <code>concat</code> requires a <code>ClassTag[O]</code></p></li><li class="fragment"><p>Option 1: add <code>ClassTag</code> constraint</p><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">def unconsN[F[_], O: ClassTag](...)</code></pre></div></div></li><li class="fragment"><p>Option 2: change return type to <code>Queue[Chunk[O]]</code></p><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">def unconsN[F[_], O](
   ...
-): Pull[F, Nothing, Option[(Queue[Chunk[O]], Stream[F, O])]]</code></pre></div></div></li><li class="fragment"><p>Option 3: remove <code>ClassTag</code> constraint from <code>concat</code></p></li></ul></div></div></section></section>
+): Pull[F, Nothing, (Queue[Chunk[O]], Stream[F, O])]</code></pre></div></div></li><li class="fragment"><p>Option 3: remove <code>ClassTag</code> constraint from <code>concat</code></p></li></ul></div></div></section></section>
 <section><section id="_concat_tagless"><h2>concat tagless</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-line-numbers="4" data-lang="scala">object Chunk:
   def concat[A](chunks: Seq[Chunk[A]]): Chunk[A] =
     val totalSize = chunks.foldMap(_.size)
@@ -630,21 +630,21 @@ object Chunk:
         case that                  =&gt; Chunk.Queue(this, that)</code></pre></div></div></div></section><section id="_unconsn_redux"><h2>unconsN Redux</h2><div class="slide-content"><div class="listingblock"><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-line-numbers="6|11|14|17" data-lang="scala">def unconsN[F[_], O](
   s: Stream[F, O],
   n: Int
-): Pull[F, Nothing, Option[(Chunk[O], Stream[F, O])]] =
+): Pull[F, Nothing, (Chunk[O], Stream[F, O])] =
   def go(
     acc: Chunk[O],
     s: Stream[F, O],
     n: Int
-  ): Pull[F, Nothing, Option[(Chunk[O], Stream[F, O])]] =
+  ): Pull[F, Nothing, (Chunk[O], Stream[F, O])] =
     s.pull.uncons.flatMap {
-      case None =&gt; Pull.pure(acc)
+      case None =&gt; Pull.pure(acc -&gt; Stream.empty)
       case Some((hd, tl)) =&gt;
         if hd.size &lt; n then
           go(acc ++ hd, tl, n - hd.size)
         else
           val (pfx, sfx) = hd.splitAt(n)
           val out = acc ++ pfx
-          Pull.pure((out, tl.cons(sfx))
+          Pull.pure(out -&gt; tl.cons(sfx))
     }
   go(Queue.empty, s, n)</code></pre></div></div></div></section></section>
 <section><section id="_chunk_queue_runtime"><h2>Chunk.Queue Runtime</h2><div class="slide-content"><div class="ulist"><div class="title">What&#8217;s asymptotic runtime of <code>Chunk.Queue#apply</code>?</div><ul><li class="fragment"><p>If number of constituent chunks is much smaller than total size, then O(1)</p></li><li class="fragment"><p>As number of constituent chunks approaches total size, runtime approaches O(n)</p></li></ul></div></div></section><section id="_chunk_queue_3"><h2>Chunk.Queue</h2><div class="slide-content"><div class="listingblock"><div class="title">What&#8217;s asymptotic runtime of <code>foreach</code>?</div><div class="content"><pre class="highlightjs highlight"><code class="language-scala hljs" data-noescape="true" data-lang="scala">trait Chunk[+A]:
