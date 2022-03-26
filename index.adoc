@@ -611,7 +611,7 @@ class Queue[+A](...):
 === Runtimes
 
 * For a `Chunk.Queue` with n elements and m constituent chunks:
-** first call to `apply` is `O(m log m)`
+** first call to `apply` is `O(m)`
 ** subsequent calls are `O(log m)`
 ** Worst case `m == n`
 
@@ -667,3 +667,4 @@ https://github.com/typelevel/fs2/pull/2720[#2720]
 
 [.column]
 image::images/fs2-logo.png[]
+
